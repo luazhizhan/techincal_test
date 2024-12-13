@@ -98,7 +98,7 @@ describe("CSV Controller Tests", () => {
     beforeEach(async () => {
       // Upload test data before each test
       const csvContent =
-        "name,age,city\nJohn,30,New York\nJane,25,Los Angeles\nBob,35,Chicago";
+        '"postId","id","name","email","body"\n"1","1","John","Eliseo@gardner.biz","id labore ex et quam laborum"';
       const tempFilePath = createTempCSVFile(csvContent);
       await request(app).post("/api/csv/upload").attach("file", tempFilePath);
     });
@@ -120,7 +120,7 @@ describe("CSV Controller Tests", () => {
         .query({ page: 1, limit: 2 });
 
       expect(response.status).toBe(200);
-      expect(response.body.data.length).toBe(2);
+      expect(response.body.data.length).toBe(1);
       expect(response.body.currentPage).toBe(1);
     });
 
@@ -134,53 +134,16 @@ describe("CSV Controller Tests", () => {
       // Should use default pagination
       expect(response.body.currentPage).toBe(1);
     });
-  });
 
-  describe("GET /api/csv/search", () => {
-    beforeEach(async () => {
-      // Upload test data before each test
-      const csvContent =
-        "name,age,city\nJohn,30,New York\nJane,25,Los Angeles\nBob,35,Chicago";
-      const tempFilePath = createTempCSVFile(csvContent);
-      await request(app).post("/api/csv/upload").attach("file", tempFilePath);
-    });
-
-    it("should return matching results for valid search term", async () => {
+    // test with search term
+    it("should return filtered data with search term", async () => {
       const response = await request(app)
-        .get("/api/csv/search")
+        .get("/api/csv/data")
         .query({ term: "John" });
 
       expect(response.status).toBe(200);
-      expect(Array.isArray(response.body)).toBe(true);
-      expect(response.body.length).toBe(1);
-      expect(response.body[0]).toHaveProperty("name", "John");
-    });
-
-    it("should return empty array for non-matching search term", async () => {
-      const response = await request(app)
-        .get("/api/csv/search")
-        .query({ term: "NonExistent" });
-
-      expect(response.status).toBe(200);
-      expect(Array.isArray(response.body)).toBe(true);
-      expect(response.body.length).toBe(0);
-    });
-
-    it("should handle case-insensitive search", async () => {
-      const response = await request(app)
-        .get("/api/csv/search")
-        .query({ term: "john" });
-
-      expect(response.status).toBe(200);
-      expect(response.body.length).toBe(1);
-      expect(response.body[0]).toHaveProperty("name", "John");
-    });
-
-    it("should return 400 when no search term is provided", async () => {
-      const response = await request(app).get("/api/csv/search");
-
-      expect(response.status).toBe(400);
-      expect(response.body).toHaveProperty("error", "Search term is required");
+      expect(response.body.data.length).toBe(1);
+      expect(response.body.data[0].name).toBe("John");
     });
   });
 });

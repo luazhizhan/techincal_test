@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { parse } from "csv-parse";
 import fs from "fs";
-import { validateCSVFile } from "../utils/csv.utils";
+import { cleanHeader, removeBOM, validateCSVFile } from "../utils/csv.utils";
 
 interface CSVData {
   [key: string]: string | number;
@@ -23,12 +23,16 @@ export const uploadCSV = async (req: Request, res: Response) => {
     }
 
     const results: CSVData[] = [];
+
+    removeBOM(req.file.path);
+    cleanHeader(req.file.path);
     fs.createReadStream(req.file.path)
-      .pipe(parse({ columns: true, skip_empty_lines: true }))
+      .pipe(parse({ columns: true, skip_empty_lines: true, trim: true }))
       .on("data", (data) => results.push(data))
       .on("end", () => {
         csvData = results;
-        fs.unlinkSync(req.file!.path); // Clean up uploaded file
+        // delete the uploaded file
+        fs.unlinkSync(req.file!.path);
         res.json({
           message: "File uploaded successfully",
           count: results.length,
@@ -38,6 +42,7 @@ export const uploadCSV = async (req: Request, res: Response) => {
         res.status(500).json({ error: "Error parsing CSV file" });
       });
   } catch (error) {
+    console.error("Error uploading CSV file:", error);
     res.status(500).json({ error: "Server error" });
   }
 };
@@ -48,6 +53,23 @@ export const getData = (req: Request, res: Response) => {
     const limit = parseInt(req.query.limit as string) || 10;
     const startIndex = (page - 1) * limit;
     const endIndex = page * limit;
+    // include search term
+    const searchTerm = req.query.term as string;
+
+    if (searchTerm) {
+      const data = csvData.filter((item) =>
+        Object.values(item).some((value) =>
+          value.toString().toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      );
+      const results = {
+        data: data.slice(startIndex, endIndex),
+        total: data.length,
+        currentPage: page,
+        totalPages: Math.ceil(data.length / limit),
+      };
+      return res.json(results);
+    }
 
     const results = {
       data: csvData.slice(startIndex, endIndex),
@@ -55,26 +77,6 @@ export const getData = (req: Request, res: Response) => {
       currentPage: page,
       totalPages: Math.ceil(csvData.length / limit),
     };
-
-    res.json(results);
-  } catch (error) {
-    res.status(500).json({ error: "Server error" });
-  }
-};
-
-export const searchData = (req: Request, res: Response) => {
-  try {
-    const searchTerm = req.query.term as string;
-    if (!searchTerm) {
-      return res.status(400).json({ error: "Search term is required" });
-    }
-
-    const results = csvData.filter((item) =>
-      Object.values(item).some((value) =>
-        value.toString().toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    );
-
     res.json(results);
   } catch (error) {
     res.status(500).json({ error: "Server error" });

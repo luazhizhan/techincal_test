@@ -1,4 +1,4 @@
-import { validateCSVFile } from "./csv.utils";
+import { validateCSVFile, removeBOM } from "./csv.utils";
 
 describe("CSV Utilities", () => {
   describe("validateCSVFile", () => {

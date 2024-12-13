@@ -14,12 +14,6 @@ npm install
 npm run dev
 ```
 
-## Building
-
-```bash
-npm run build
-```
-
 ## Testing
 
 ```bash
@@ -31,3 +25,9 @@ OR
 ```bash
 npm run test:watch
 ```
+
+## Enhancements
+
+Due to time constraints, the following enhancements were not implemented:
+
+1. Storing data of csv to a database or file system instead of in-memory.
